@@ -1,2 +1,63 @@
 ---
 # tasks file for ansible-role-mysql-root-password/
+
+# - name: get the apt package facts
+#   package_facts:
+#     manager: "auto"
+#
+# - name: show them
+#   debug: var=ansible_facts.packages
+
+# - name: Verify MySQL is installed
+#   apt: pkg={{item}} state=installed
+#   with_items:
+#       - mysql-server
+
+- stat:
+    path: /etc/init.d/mysql
+  register: mysql_installed
+
+- debug:
+    msg: "MySQL server or MariaDB server are required"
+  when: mysql_installed.stat.exists is not defined
+
+- name: Verify the MySQL service is running
+  service:
+    name: mysql
+    state: started
+    enabled: true
+  when: mysql_installed.stat.exists is defined
+
+- name: Set root password
+  mysql_user:
+    name: "{{ mysql_root_username }}"
+    password: "{{ mysql_root_password }}"
+    host: "{{ item }}"
+    priv: '*.*:ALL,GRANT'
+    # login_user: root
+    # login_password: ""
+    state: present
+  with_items:
+    # - "{{ ansible_hostname }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  when: mysql_installed.stat.exists is defined
+
+
+- name: Create local my.cnf for root user
+  template:
+    src: "templates/root.my.cnf.j2"
+    dest: "/root/.my.cnf"
+    owner: root
+    group: root
+    mode: 0600
+  when: mysql_installed.stat.exists is defined
+
+
+- name: Restart the MySQL service
+  service:
+    name: mysql
+    state: restarted
+    enabled: true
+  when: mysql_installed.stat.exists is defined

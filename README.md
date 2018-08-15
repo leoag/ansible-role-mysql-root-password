@@ -1,17 +1,32 @@
 Role Name
 =========
 
-A brief description of the role goes here.
+ A very simple role to reset the mysql or mariadb server root password
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- MySQL or MariaDB Server must be installed.
+- The role checks for the /etc/init.d/mysql file to proceed.
+- You should have sudo or root for the role to work due to become (see example below)
+- python-mysqldb or python3-mysqldb is needed depending on python version
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+Right now it only has 2 variables:
+
+    mysql_root_username: root
+    mysql_root_password: "{{ mysql_root_password }}"
+
+They have default values in defaults/main.yml, so they are not mandatory.
+You have the option to pass the mysql_root_password variable inline, in the
+vars/main.yml or with a ansible-vault file /vars/vault.yml
+
+If you pass it with a vault file, keep in mind you should enter the vault password inline. Examples below.
+
+Vault support is a work in progress.
+
 
 Dependencies
 ------------
@@ -21,18 +36,33 @@ A list of other roles hosted on Galaxy should go here, plus any details in regar
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
+    - hosts: dbservers
+      become: true
+      vars_files:
+        - vars/main.yml
+        - vars/vault.yml
       roles:
-         - { role: username.rolename, x: 42 }
+        - role: leogallego.mysql-root-password
+
+Run it with the mysql password inline and ask for sudo password:
+
+    ansible-playbook -i mysql.hosts playbook-mysql-reset.yml -e "mysql_root_password=INLINEPASS" --ask-pass --ask-become-pass
+
+Run it with variables in vars/main.yml:
+
+    ansible-playbook -i mysql.hosts playbook-mysql-reset.yml --ask-pass  --ask-become-pass
+
+Run it with {{ mysql_root_password }} defined in vars/vault.yml:
+
+    ansible-playbook -i mysql.hosts playbook-mysql-reset.yml --ask-pass --ask-vault-pass --ask-become-pass
+
 
 License
 -------
 
-BSD
+GPLv3
 
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Leonardo Gallego
